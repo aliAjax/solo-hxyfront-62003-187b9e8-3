@@ -1,128 +1,93 @@
-import "./styles.css";
+import { useState } from "react";
+import { StoreProvider, useStore, ROLE_LABEL } from "./store";
+import Dashboard from "./views/Dashboard";
+import Inventory from "./views/Inventory";
+import Locations from "./views/Locations";
+import Orders from "./views/Orders";
+import Audit from "./views/Audit";
+import type { Role } from "./types";
 
-const project = {
-  "sourceNo": 5,
-  "id": "hxyfront-62003",
-  "port": 62003,
-  "title": "法医昆虫学样本记录",
-  "domain": "法医昆虫学",
-  "prompt": "做一个法医昆虫学样本记录前端工具，用来记录采样地点、环境温度、尸体暴露阶段、昆虫种类、发育阶段、采样时间、保存方式和鉴定备注。页面需要有样本批次列表、发育阶段筛选、温度记录图、案件样本关联页和单个样本详情卡片。",
-  "palette": [
-    "#365314",
-    "#a16207",
-    "#dc2626"
-  ],
-  "metrics": [
-    "样本批次",
-    "平均温度",
-    "发育阶段",
-    "待鉴定"
-  ],
-  "filters": [
-    "卵",
-    "幼虫",
-    "蛹",
-    "成虫"
-  ],
-  "fields": [
-    "采样地点",
-    "环境温度",
-    "暴露阶段",
-    "昆虫种类",
-    "发育阶段",
-    "保存方式"
-  ],
-  "records": [
-    [
-      "CASE-042-A",
-      "室外草地",
-      "幼虫三龄，28.6℃",
-      "乙醇保存"
-    ],
-    [
-      "CASE-042-B",
-      "阴影区域",
-      "蛹期样本",
-      "需复核种属"
-    ],
-    [
-      "CASE-051-A",
-      "水沟边缘",
-      "成虫采集",
-      "已完成拍照"
-    ]
-  ]
-};
+type Tab = "dashboard" | "orders" | "inventory" | "locations" | "audit";
 
-function App() {
+const TABS: { key: Tab; label: string }[] = [
+  { key: "dashboard", label: "效期看板" },
+  { key: "orders", label: "领用工作台" },
+  { key: "inventory", label: "库存批次" },
+  { key: "locations", label: "库位视图" },
+  { key: "audit", label: "审计档案" },
+];
+
+const ROLES: Role[] = ["researcher", "keeper", "admin"];
+
+function Shell() {
+  const { role, setRole, actor, setActor, toasts, dismissToast, resetData } = useStore();
+  const [tab, setTab] = useState<Tab>("dashboard");
+
   return (
     <main className="app">
-      <section className="hero">
-        <p>{project.id} · 源提示词{project.sourceNo} · Port {project.port}</p>
-        <h1>{project.title}</h1>
-        <span>{project.prompt}</span>
-      </section>
-
-      <section className="metrics">
-        {project.metrics.map((metric: string, index: number) => (
-          <article key={metric}>
-            <small>{metric}</small>
-            <strong>{[86, 14, 7, 32][index] ?? 12}</strong>
-          </article>
-        ))}
-      </section>
-
-      <section className="workspace">
-        <aside className="panel">
-          <h2>{project.domain}筛选</h2>
-          <div className="chips">
-            {project.filters.map((item: string) => (
-              <button key={item}>{item}</button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="panel form-panel">
-          <div className="heading">
-            <div>
-              <p>专业字段</p>
-              <h2>新增记录</h2>
-            </div>
-            <button className="primary">保存草稿</button>
-          </div>
-          <div className="field-grid">
-            {project.fields.map((field: string) => (
-              <label key={field}>
-                <span>{field}</span>
-                <input placeholder={"填写" + field} />
-              </label>
-            ))}
-          </div>
-        </section>
-      </section>
-
-      <section className="panel">
-        <div className="heading">
+      <header className="topbar">
+        <div className="brand">
+          <span className="logo">☣</span>
           <div>
-            <p>历史记录</p>
-            <h2>近期工作台</h2>
+            <h1>危化试剂库房管理台</h1>
+            <p>FIFO 跨批次占用 · 效期/冻结/相容性拦截 · 单据状态机 · 事务回滚 · 召回冻结</p>
           </div>
-          <button>导出摘要</button>
         </div>
-        <div className="records">
-          {project.records.map((record: string[], index: number) => (
-            <article key={record.join("-")}>
-              <b>{String(index + 1).padStart(2, "0")}</b>
-              <div>
-                <h3>{record[0]}</h3>
-                <p>{record.slice(1).join(" · ")}</p>
-              </div>
-            </article>
-          ))}
+        <div className="role-box">
+          <label className="inline">
+            <span>当前身份</span>
+            <select value={role} onChange={(e) => setRole(e.target.value as Role)} data-testid="role-select">
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {ROLE_LABEL[r]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="inline">
+            <span>操作人</span>
+            <input value={actor} onChange={(e) => setActor(e.target.value)} data-testid="actor-input" />
+          </label>
+          <button className="btn-sm" onClick={resetData} data-testid="reset-data">
+            重置演示数据
+          </button>
         </div>
-      </section>
+      </header>
+
+      <nav className="tabs">
+        {TABS.map((t) => (
+          <button key={t.key} className={tab === t.key ? "active" : ""} onClick={() => setTab(t.key)} data-testid={`tab-${t.key}`}>
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {tab === "dashboard" && <Dashboard />}
+      {tab === "orders" && <Orders />}
+      {tab === "inventory" && <Inventory />}
+      {tab === "locations" && <Locations />}
+      {tab === "audit" && <Audit />}
+
+      <div className="toast-stack">
+        {toasts.map((t) => (
+          <div key={t.id} className={`toast ${t.kind}`} data-testid={`toast-${t.kind}`} onClick={() => dismissToast(t.id)}>
+            <b>{t.kind === "ok" ? "✓ 操作成功" : "⛔ 操作被拦截"}</b>
+            <span>{t.text}</span>
+          </div>
+        ))}
+      </div>
+
+      <footer className="foot">
+        数据保存在浏览器 localStorage（刷新自动恢复）· 所有写操作经事务引擎执行，失败零副作用
+      </footer>
     </main>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <StoreProvider>
+      <Shell />
+    </StoreProvider>
+  );
+}
